@@ -1,0 +1,1333 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<title>OTHELLO</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+:root{
+  --gold:#c9a84c;--gold-l:#e8c96d;--cream:#f5eed8;
+  --sat:env(safe-area-inset-top,0px);--sab:env(safe-area-inset-bottom,0px);
+  --sal:env(safe-area-inset-left,0px);--sar:env(safe-area-inset-right,0px);
+  --max:460px;
+}
+html,body{height:100%;width:100%;overflow:hidden;font-family:Georgia,serif;background:#1e0e04;}
+
+/* BG */
+.bg{position:fixed;inset:0;z-index:0;
+  background:radial-gradient(ellipse at 18% 10%,#5c2e0a,transparent 52%),
+             radial-gradient(ellipse at 85% 88%,#4a2208,transparent 50%),
+             linear-gradient(160deg,#3b1f0a,#1e0e04 50%,#3d2010);}
+.bg::after{content:'';position:absolute;inset:0;
+  background-image:repeating-linear-gradient(92deg,transparent,transparent 3px,rgba(255,255,255,.006) 3px,rgba(255,255,255,.006) 4px),
+                   repeating-linear-gradient(88deg,transparent,transparent 9px,rgba(0,0,0,.03) 9px,rgba(0,0,0,.03) 10px);}
+
+/* SCREENS */
+.screen{position:fixed;inset:0;z-index:10;display:flex;flex-direction:column;align-items:center;overflow:hidden;transition:opacity .3s,transform .3s;}
+.screen.hidden{opacity:0;pointer-events:none;transform:scale(.97);}
+
+/* ═══════════════════════════════════════
+   START SCREEN  – fully scrollable
+═══════════════════════════════════════ */
+#screen-start{justify-content:flex-start;overflow-y:auto;-webkit-overflow-scrolling:touch;}
+.start-wrap{width:100%;display:flex;justify-content:center;min-height:100%;}
+.start-inner{
+  width:100%;max-width:var(--max);
+  display:flex;flex-direction:column;align-items:center;
+  padding:calc(var(--sat)+24px) 20px calc(var(--sab)+28px);
+  gap:0;
+}
+
+/* Logo – compact */
+.logo-area{text-align:center;margin-bottom:14px;}
+.logo-discs{display:flex;align-items:center;justify-content:center;gap:9px;margin-bottom:8px;}
+.ld{width:40px;height:40px;border-radius:50%;}
+.ld.b{background:radial-gradient(circle at 38% 30%,#686868,#2a2a2a 30%,#000);box-shadow:0 3px 12px rgba(0,0,0,.9),inset 0 1px 3px rgba(255,255,255,.13);}
+.ld.w{background:radial-gradient(circle at 38% 28%,#fff,#f0ece0 30%,#c0bdb0);box-shadow:0 3px 12px rgba(0,0,0,.5),inset 0 1px 4px rgba(255,255,255,.9);}
+.logo-title{font-size:38px;font-weight:bold;letter-spacing:12px;color:var(--gold);text-shadow:0 2px 8px rgba(0,0,0,.9);text-transform:uppercase;}
+.logo-sub{font-size:11px;letter-spacing:4px;color:rgba(201,168,76,.35);margin-top:4px;text-transform:uppercase;}
+
+/* Rank badge */
+.rank-badge{display:flex;align-items:center;gap:10px;background:linear-gradient(135deg,rgba(201,168,76,.09),rgba(0,0,0,.2));border:1px solid rgba(201,168,76,.28);border-radius:11px;padding:10px 14px;margin-bottom:12px;width:100%;}
+.rb-lbl{font-size:10px;letter-spacing:2px;color:rgba(201,168,76,.5);text-transform:uppercase;}
+.rb-rank{font-size:20px;font-weight:bold;color:var(--gold-l);}
+.rb-right{margin-left:auto;text-align:right;}
+.rb-pts{font-size:15px;color:rgba(245,238,216,.65);}
+.rb-streak{font-size:12px;color:rgba(255,180,60,.8);margin-top:2px;}
+
+/* Nav tabs – 5 tabs now */
+.nav-tabs{width:100%;display:flex;gap:6px;margin-bottom:14px;}
+.nav-tab{flex:1;padding:9px 2px;background:rgba(0,0,0,.22);border:1px solid rgba(201,168,76,.14);border-radius:9px;color:rgba(201,168,76,.42);font-size:11px;letter-spacing:.5px;cursor:pointer;text-align:center;font-family:Georgia,serif;transition:all .2s;}
+.nav-tab.act{background:rgba(201,168,76,.12);border-color:var(--gold);color:var(--gold);}
+.nav-tab:active{opacity:.7;}
+.tab-panel{display:none;width:100%;flex-direction:column;align-items:center;}
+.tab-panel.act{display:flex;}
+
+/* ── MODE CARDS ── */
+.mode-section{width:100%;margin-bottom:12px;}
+.pvp-card{width:100%;background:linear-gradient(160deg,rgba(255,255,255,.055),rgba(0,0,0,.22));border:1.5px solid rgba(201,168,76,.18);border-radius:13px;padding:12px 16px;display:flex;align-items:center;gap:12px;cursor:pointer;transition:border-color .2s,box-shadow .2s,background .2s;margin-bottom:9px;}
+.pvp-card.sel{border-color:var(--gold);background:linear-gradient(160deg,rgba(201,168,76,.11),rgba(201,168,76,.03));box-shadow:0 0 14px rgba(201,168,76,.13);}
+.pvp-card:active{opacity:.8;}
+.pvp-icon{display:flex;gap:5px;}
+.mi{width:22px;height:22px;border-radius:50%;}
+.mi.b{background:radial-gradient(circle at 38% 30%,#686868,#000);box-shadow:0 2px 5px rgba(0,0,0,.8);}
+.mi.w{background:radial-gradient(circle at 38% 28%,#fff,#c0bdb0);box-shadow:0 2px 5px rgba(0,0,0,.4);}
+.pvp-name{font-size:15px;font-weight:bold;color:var(--cream);}
+.pvp-desc{font-size:11px;color:rgba(245,238,216,.35);margin-top:1px;}
+
+.mode-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;}
+.diff-card{background:linear-gradient(160deg,rgba(255,255,255,.04),rgba(0,0,0,.22));border:1.5px solid rgba(201,168,76,.14);border-radius:13px;padding:12px 6px;display:flex;flex-direction:column;align-items:center;gap:5px;cursor:pointer;transition:border-color .2s,box-shadow .2s,background .2s;position:relative;}
+.diff-card.sel{border-color:var(--gold);background:linear-gradient(160deg,rgba(201,168,76,.11),rgba(201,168,76,.03));box-shadow:0 0 14px rgba(201,168,76,.13);}
+.diff-card.sel::after{content:'✓';position:absolute;top:5px;right:8px;font-size:11px;color:var(--gold);}
+.diff-card:active{opacity:.8;}
+.diff-stars{display:flex;gap:3px;}
+.star{width:9px;height:9px;border-radius:50%;background:rgba(201,168,76,.2);}
+.star.on{background:var(--gold);}
+.diff-icon{font-size:22px;line-height:1;}
+.diff-name{font-size:13px;font-weight:bold;color:var(--cream);text-align:center;line-height:1.3;}
+.diff-pts{font-size:11px;color:rgba(201,168,76,.5);}
+
+/* Options row */
+.options-row{width:100%;display:flex;align-items:center;gap:8px;margin-bottom:16px;}
+.options-chips{display:flex;gap:5px;flex-wrap:wrap;align-items:center;flex:1;}
+.opt-chip{font-size:11px;padding:3px 9px;border-radius:20px;border:1px solid rgba(201,168,76,.24);color:rgba(201,168,76,.68);background:rgba(201,168,76,.07);}
+.opt-chip.red{color:rgba(255,110,110,.88);background:rgba(160,20,20,.1);border-color:rgba(255,70,70,.22);}
+.btn-options{display:flex;align-items:center;gap:6px;background:rgba(0,0,0,.25);border:1px solid rgba(201,168,76,.24);border-radius:9px;padding:8px 14px;color:rgba(201,168,76,.68);font-size:13px;cursor:pointer;font-family:Georgia,serif;white-space:nowrap;flex-shrink:0;transition:opacity .2s;}
+.btn-options:active{opacity:.7;}
+
+/* Start button */
+.btn-start{width:100%;max-width:280px;padding:15px;background:linear-gradient(135deg,#c9a84c,#8a6a20);border:none;border-radius:11px;color:#1a0f00;font-size:14px;font-weight:bold;letter-spacing:6px;text-transform:uppercase;cursor:pointer;font-family:Georgia,serif;box-shadow:0 5px 20px rgba(0,0,0,.6),inset 0 1px 0 rgba(255,255,255,.3);transition:opacity .15s,transform .15s;display:block;margin:0 auto;}
+.btn-start:active{opacity:.85;transform:scale(.97);}
+
+/* ── MEDALS TAB ── */
+.medals-header{width:100%;display:flex;align-items:baseline;justify-content:space-between;margin-bottom:10px;}
+.medals-title{font-size:13px;letter-spacing:3px;color:rgba(201,168,76,.5);text-transform:uppercase;}
+.medals-count{font-size:12px;color:rgba(245,238,216,.35);}
+.medals-grid{width:100%;display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:16px;}
+.medal-cell{display:flex;flex-direction:column;align-items:center;gap:4px;padding:10px 4px;background:rgba(0,0,0,.2);border:1px solid rgba(201,168,76,.1);border-radius:10px;transition:border-color .2s;}
+.medal-cell.earned{border-color:rgba(201,168,76,.35);background:rgba(201,168,76,.05);}
+.medal-cell.earned .medal-emoji{filter:none;opacity:1;}
+.medal-emoji{font-size:26px;filter:grayscale(1);opacity:.25;transition:filter .3s,opacity .3s;}
+.medal-name{font-size:9px;letter-spacing:.5px;color:rgba(201,168,76,.4);text-align:center;line-height:1.3;}
+.medal-cell.earned .medal-name{color:rgba(201,168,76,.72);}
+
+/* ── SKIN GRID ── */
+.skin-grid{width:100%;display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px;}
+.skin-card{background:rgba(0,0,0,.2);border:1.5px solid rgba(201,168,76,.14);border-radius:13px;padding:14px 10px;display:flex;flex-direction:column;align-items:center;gap:7px;cursor:pointer;transition:border-color .2s,box-shadow .2s;position:relative;}
+.skin-card.owned{border-color:rgba(201,168,76,.28);}
+.skin-card.equipped{border-color:var(--gold);box-shadow:0 0 16px rgba(201,168,76,.16);}
+.skin-card.equipped::after{content:'装備中';position:absolute;top:6px;right:9px;font-size:10px;color:var(--gold);letter-spacing:1px;}
+.skin-card.slocked .skin-preview{opacity:.3;}
+.skin-preview{display:flex;gap:9px;align-items:center;}
+.skin-disc{width:28px;height:28px;border-radius:50%;}
+.skin-name{font-size:13px;font-weight:bold;color:var(--cream);}
+.skin-badge{font-size:11px;letter-spacing:.5px;padding:3px 8px;border-radius:4px;}
+.skin-badge.sfree{background:rgba(80,200,80,.12);color:rgba(120,220,120,.8);border:1px solid rgba(80,200,80,.2);}
+.skin-badge.scost{background:rgba(201,168,76,.1);color:rgba(201,168,76,.7);border:1px solid rgba(201,168,76,.2);}
+.skin-badge.slocked{background:rgba(255,255,255,.04);color:rgba(255,255,255,.26);border:1px solid rgba(255,255,255,.07);}
+
+/* ── ACHIEVEMENTS TAB ── */
+.ach-list{width:100%;display:flex;flex-direction:column;gap:8px;margin-bottom:14px;}
+.ach-item{display:flex;align-items:center;gap:11px;background:rgba(0,0,0,.2);border:1px solid rgba(201,168,76,.09);border-radius:11px;padding:10px 12px;transition:border-color .2s;}
+.ach-item.done{border-color:rgba(201,168,76,.3);background:rgba(201,168,76,.04);}
+.ach-icon{font-size:26px;flex-shrink:0;filter:grayscale(1);opacity:.25;}
+.ach-item.done .ach-icon{filter:none;opacity:1;}
+.ach-info{flex:1;min-width:0;}
+.ach-name{font-size:13px;font-weight:bold;color:rgba(245,238,216,.5);}
+.ach-item.done .ach-name{color:var(--gold-l);}
+.ach-desc{font-size:11px;color:rgba(245,238,216,.3);margin-top:2px;}
+.ach-reward{font-size:10px;color:rgba(201,168,76,.5);margin-top:2px;}
+.ach-check{font-size:17px;color:rgba(201,168,76,.18);flex-shrink:0;}
+.ach-item.done .ach-check{color:var(--gold);}
+.ach-bar-wrap{height:3px;background:rgba(255,255,255,.06);border-radius:2px;margin-top:5px;overflow:hidden;}
+.ach-bar{height:100%;background:rgba(201,168,76,.55);border-radius:2px;transition:width .5s;}
+
+/* ── STATS TAB ── */
+.stats-section{width:100%;margin-bottom:14px;}
+.stats-heading{font-size:11px;letter-spacing:2px;color:rgba(201,168,76,.4);text-transform:uppercase;margin-bottom:8px;}
+.stats-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:12px;}
+.stat-box{background:rgba(0,0,0,.22);border:1px solid rgba(201,168,76,.14);border-radius:10px;padding:10px 6px;text-align:center;}
+.stat-val{font-size:22px;font-weight:bold;color:var(--cream);line-height:1;}
+.stat-lbl{font-size:10px;letter-spacing:1px;color:rgba(201,168,76,.42);text-transform:uppercase;margin-top:3px;}
+.streak-info-box{width:100%;background:rgba(0,0,0,.2);border:1px solid rgba(201,168,76,.14);border-radius:10px;padding:12px 14px;display:flex;justify-content:space-around;margin-bottom:12px;}
+.sib-item{text-align:center;}
+.sib-val{font-size:20px;font-weight:bold;color:var(--cream);}
+.sib-lbl{font-size:10px;letter-spacing:1px;color:rgba(201,168,76,.42);text-transform:uppercase;margin-top:2px;}
+
+/* ═══════════════════════════════════════
+   SETTINGS SHEET
+═══════════════════════════════════════ */
+.sheet-bg{position:fixed;inset:0;z-index:80;background:rgba(0,0,0,.6);opacity:0;pointer-events:none;transition:opacity .25s;}
+.sheet-bg.show{opacity:1;pointer-events:auto;}
+.sheet{
+  position:fixed;bottom:0;left:0;right:0;z-index:81;
+  background:linear-gradient(180deg,#2a1506,#140500);
+  border-top:1px solid rgba(201,168,76,.3);
+  border-radius:22px 22px 0 0;
+  padding:0 0 calc(var(--sab)+20px);
+  transform:translateY(100%);
+  transition:transform .32s cubic-bezier(.32,1,.5,1);
+  max-height:88vh;overflow-y:auto;
+}
+.sheet.show{transform:translateY(0);}
+.sheet-inner{max-width:var(--max);margin:0 auto;padding:0 24px;}
+.sheet-handle{width:38px;height:4px;border-radius:2px;background:rgba(201,168,76,.22);margin:12px auto 18px;}
+.sheet-title{font-size:13px;letter-spacing:4px;color:rgba(201,168,76,.5);text-transform:uppercase;text-align:center;margin-bottom:20px;}
+.sheet-section{margin-bottom:18px;}
+.sheet-label{font-size:10px;letter-spacing:2px;color:rgba(201,168,76,.4);text-transform:uppercase;margin-bottom:9px;}
+.color-cards{display:flex;gap:10px;}
+.color-card{flex:1;background:linear-gradient(160deg,rgba(255,255,255,.05),rgba(0,0,0,.22));border:1.5px solid rgba(201,168,76,.18);border-radius:12px;padding:13px 10px;display:flex;flex-direction:column;align-items:center;gap:6px;cursor:pointer;transition:border-color .2s,background .2s;}
+.color-card.sel{border-color:var(--gold);background:linear-gradient(160deg,rgba(201,168,76,.12),rgba(201,168,76,.03));}
+.color-card:active{opacity:.8;}
+.cc-disc{width:28px;height:28px;border-radius:50%;}
+.cc-name{font-size:14px;font-weight:bold;color:var(--cream);}
+.cc-sub{font-size:11px;color:rgba(245,238,216,.38);}
+.modifier-row{display:flex;gap:9px;}
+.mod-card{flex:1;background:linear-gradient(160deg,rgba(255,255,255,.04),rgba(0,0,0,.22));border:1.5px solid rgba(201,168,76,.14);border-radius:11px;padding:11px 10px;display:flex;align-items:center;gap:9px;cursor:pointer;transition:border-color .2s,background .2s;}
+.mod-card.sel{border-color:var(--gold);background:rgba(201,168,76,.07);}
+.mod-card.sel-red{border-color:rgba(255,70,70,.5);background:rgba(150,15,15,.12);}
+.mod-card:active{opacity:.8;}
+.mod-icon{font-size:20px;flex-shrink:0;}
+.mod-name{font-size:12px;font-weight:bold;color:var(--cream);}
+.mod-desc{font-size:10px;color:rgba(245,238,216,.34);margin-top:1px;}
+.sound-row{display:flex;align-items:center;justify-content:space-between;padding:11px 15px;background:rgba(0,0,0,.2);border:1px solid rgba(201,168,76,.12);border-radius:11px;}
+.sound-lbl{font-size:14px;color:rgba(245,238,216,.68);}
+.sound-toggle{width:44px;height:26px;background:rgba(0,0,0,.3);border:1px solid rgba(201,168,76,.25);border-radius:13px;position:relative;cursor:pointer;transition:background .2s;flex-shrink:0;}
+.sound-toggle.on{background:rgba(201,168,76,.25);border-color:var(--gold);}
+.sound-toggle::after{content:'';position:absolute;top:3px;left:3px;width:18px;height:18px;border-radius:50%;background:rgba(201,168,76,.5);transition:transform .2s,background .2s;}
+.sound-toggle.on::after{transform:translateX(18px);background:var(--gold);}
+.sheet-close{width:100%;padding:13px;margin-top:6px;background:linear-gradient(135deg,rgba(201,168,76,.13),rgba(201,168,76,.04));border:1px solid rgba(201,168,76,.24);border-radius:11px;color:var(--gold);font-size:13px;letter-spacing:3px;text-transform:uppercase;cursor:pointer;font-family:Georgia,serif;}
+.sheet-close:active{opacity:.7;}
+
+/* ═══════════════════════════════════════
+   GAME SCREEN  – fits viewport, no scroll
+═══════════════════════════════════════ */
+#screen-game{justify-content:flex-start;}
+.game-wrap{width:100%;height:100%;display:flex;justify-content:center;}
+.game-safe{
+  width:100%;max-width:var(--max);
+  display:flex;flex-direction:column;align-items:center;
+  padding:calc(var(--sat)+16px) calc(var(--sar)+14px) calc(var(--sab)+8px) calc(var(--sal)+14px);
+  gap:6px;height:100%;
+}
+
+/* Top bar */
+.top-bar{width:100%;display:flex;align-items:center;justify-content:space-between;flex-shrink:0;position:relative;}
+.btn-back{width:40px;height:40px;background:rgba(0,0,0,.22);border:1px solid rgba(201,168,76,.22);border-radius:9px;color:rgba(201,168,76,.72);font-size:19px;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:opacity .2s;}
+.btn-back:active{opacity:.7;}
+.game-title{position:absolute;left:50%;transform:translateX(-50%);font-size:16px;letter-spacing:6px;color:var(--gold);pointer-events:none;white-space:nowrap;}
+.top-right{display:flex;gap:6px;align-items:center;}
+.btn-undo{position:relative;width:40px;height:40px;background:rgba(0,0,0,.22);border:1px solid rgba(201,168,76,.22);border-radius:9px;color:rgba(201,168,76,.72);font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:opacity .2s;}
+.btn-undo:active{opacity:.7;}
+.btn-undo.off{opacity:.22;pointer-events:none;}
+.undo-count{position:absolute;top:-5px;right:-5px;width:16px;height:16px;border-radius:50%;background:var(--gold);color:#1a0f00;font-size:10px;font-weight:bold;display:flex;align-items:center;justify-content:center;}
+.btn-restart{background:rgba(0,0,0,.22);border:1px solid rgba(201,168,76,.22);border-radius:9px;padding:0 12px;height:40px;color:rgba(201,168,76,.68);font-size:12px;letter-spacing:1px;cursor:pointer;font-family:Georgia,serif;display:flex;align-items:center;transition:opacity .2s;}
+.btn-restart:active{opacity:.7;}
+
+/* Info row */
+.info-row{width:100%;flex-shrink:0;display:flex;align-items:center;justify-content:space-between;gap:5px;min-height:22px;}
+.mode-tags{display:flex;gap:4px;align-items:center;flex-wrap:wrap;}
+.mode-tag{font-size:11px;color:rgba(201,168,76,.72);background:rgba(201,168,76,.09);border:1px solid rgba(201,168,76,.22);border-radius:5px;padding:2px 7px;white-space:nowrap;}
+.mode-tag.red{color:rgba(255,110,110,.85);background:rgba(160,20,20,.1);border-color:rgba(255,70,70,.22);}
+.streak-txt{font-size:11px;color:rgba(255,180,60,.9);white-space:nowrap;}
+
+/* Turn banner */
+.turn-banner{width:100%;flex-shrink:0;display:flex;align-items:center;gap:10px;background:linear-gradient(135deg,rgba(255,255,255,.05),rgba(0,0,0,.2));border:1px solid rgba(201,168,76,.18);border-radius:12px;padding:8px 14px;min-height:50px;position:relative;overflow:hidden;transition:border-color .25s;}
+.turn-banner.tb-black{border-color:rgba(110,110,110,.5);}
+.turn-banner.tb-white{border-color:rgba(220,210,180,.4);}
+.turn-banner.tb-black::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,transparent,rgba(140,140,140,.5),transparent);}
+.turn-banner.tb-white::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,transparent,rgba(220,210,180,.5),transparent);}
+.tb-disc{width:30px;height:30px;border-radius:50%;flex-shrink:0;}
+.tb-center{display:flex;flex-direction:column;align-items:center;flex:1;}
+.tb-lbl{font-size:9px;letter-spacing:3px;color:rgba(201,168,76,.4);text-transform:uppercase;}
+.tb-name{font-size:18px;font-weight:bold;color:var(--cream);letter-spacing:2px;line-height:1.1;}
+.tb-sub{font-size:11px;color:rgba(201,168,76,.45);background:rgba(201,168,76,.07);border-radius:3px;padding:2px 8px;white-space:nowrap;}
+
+/* Score row */
+.score-row{width:100%;display:flex;gap:8px;flex-shrink:0;}
+.score-pill{flex:1;display:flex;align-items:center;gap:8px;background:linear-gradient(160deg,rgba(255,255,255,.05),rgba(0,0,0,.18));border:1px solid rgba(201,168,76,.15);border-radius:11px;padding:7px 11px;transition:border-color .2s,box-shadow .2s;position:relative;overflow:hidden;}
+.score-pill.my-turn{border-color:var(--gold);box-shadow:0 0 12px rgba(201,168,76,.12);}
+.score-pill.my-turn::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,transparent,var(--gold),transparent);}
+.sp-disc{width:26px;height:26px;border-radius:50%;flex-shrink:0;}
+.sp-info{flex:1;min-width:0;}
+.sp-pname{font-size:11px;color:rgba(201,168,76,.5);text-transform:uppercase;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.sp-count{font-size:24px;font-weight:bold;color:var(--cream);line-height:1;}
+
+/* Board – fills remaining space */
+.board-wrap{width:100%;background:linear-gradient(135deg,#8b5523,#6b3a1f 25%,#5c2e08 50%,#7a3f10 75%,#8b5523);border-radius:10px;padding:7px;box-shadow:0 6px 24px rgba(0,0,0,.8),inset 0 1px 0 rgba(255,255,255,.14);position:relative;flex-shrink:0;}
+/* keep board square */
+.board-wrap::after{content:'';display:block;padding-top:100%;}
+.board-wrap>*:not(.board-wrap::after){position:absolute;}
+.board-wrap::before{content:'';position:absolute;inset:2px;border-radius:7px;border:1px solid rgba(201,168,76,.24);pointer-events:none;z-index:2;}
+.board{position:absolute;inset:7px;border-radius:4px;overflow:hidden;display:grid;grid-template-columns:repeat(8,1fr);grid-template-rows:repeat(8,1fr);gap:1px;background:#0d3018;}
+.cell{background:#1a5c2e;position:relative;cursor:pointer;overflow:hidden;background-image:radial-gradient(ellipse at 30% 30%,rgba(255,255,255,.03),transparent 55%);}
+.cell:active{background-color:#1d6635;}
+.cell.hint::after{content:'';position:absolute;inset:27%;border-radius:50%;background:rgba(201,168,76,.17);border:1.5px solid rgba(201,168,76,.46);}
+.cell.last-move::before{content:'';position:absolute;inset:0;background:rgba(201,168,76,.12);z-index:1;pointer-events:none;}
+.disc{position:absolute;inset:5%;border-radius:50%;will-change:transform;z-index:2;}
+.disc.black{background:radial-gradient(circle at 38% 30%,#686868,#2a2a2a 30%,#000);box-shadow:0 2px 5px rgba(0,0,0,.9),inset 0 1px 2px rgba(255,255,255,.12);}
+.disc.white{background:radial-gradient(circle at 38% 28%,#fff,#f0ece0 30%,#c0bdb0);box-shadow:0 2px 5px rgba(0,0,0,.55),inset 0 1px 3px rgba(255,255,255,.9);}
+/* skin classes */
+.skin-gold .disc.black{background:radial-gradient(circle at 35% 28%,#f5d060,#c9910a 40%,#6b4a00);}
+.skin-gold .disc.white{background:radial-gradient(circle at 35% 28%,#fffbe0,#e8c84a 40%,#b8980a);}
+.skin-fire .disc.black{background:radial-gradient(circle at 35% 28%,#ff9944,#cc3300 40%,#550000);}
+.skin-fire .disc.white{background:radial-gradient(circle at 35% 28%,#ffe066,#ff8800 40%,#cc4400);}
+.skin-ice  .disc.black{background:radial-gradient(circle at 35% 28%,#b0e8ff,#5ab0e0 40%,#0060a0);}
+.skin-ice  .disc.white{background:radial-gradient(circle at 35% 28%,#eaf8ff,#b8e8ff 40%,#70c8f0);}
+.skin-galaxy .disc.black{background:radial-gradient(circle at 35% 28%,#9966ff,#440088 40%,#110022);}
+.skin-galaxy .disc.white{background:radial-gradient(circle at 35% 28%,#ffccff,#cc88ff 40%,#8844cc);}
+
+@keyframes flip-to-white{0%{transform:scaleX(1);}45%{transform:scaleX(0);}55%{transform:scaleX(0);}100%{transform:scaleX(1);}}
+@keyframes flip-to-black{0%{transform:scaleX(1);}45%{transform:scaleX(0);}55%{transform:scaleX(0);}100%{transform:scaleX(1);}}
+@keyframes place{0%{transform:scale(0) translateY(-8px);opacity:0;}60%{transform:scale(1.1);opacity:1;}100%{transform:scale(1);}}
+.disc.anim-flip-white{animation:flip-to-white .27s ease forwards;}
+.disc.anim-flip-black{animation:flip-to-black .27s ease forwards;}
+.disc.anim-place{animation:place .2s cubic-bezier(.34,1.56,.64,1) forwards;}
+
+.pass-notice{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,.5);border-radius:4px;z-index:5;opacity:0;pointer-events:none;transition:opacity .2s;}
+.pass-notice.show{opacity:1;}
+.pass-inner{background:linear-gradient(135deg,#4a2810,#2a1406);border:1px solid var(--gold);border-radius:11px;padding:14px 24px;text-align:center;}
+.pass-title{font-size:12px;letter-spacing:3px;color:var(--gold);text-transform:uppercase;margin-bottom:5px;}
+.pass-msg{font-size:14px;color:var(--cream);}
+
+/* ═══════════════════════════════════════
+   RESULT OVERLAY
+═══════════════════════════════════════ */
+.overlay-base{position:fixed;inset:0;background:rgba(0,0,0,.82);display:flex;align-items:center;justify-content:center;z-index:50;backdrop-filter:blur(4px);opacity:0;pointer-events:none;transition:opacity .3s;padding:20px;}
+.overlay-base.show{opacity:1;pointer-events:auto;}
+.overlay-card{background:linear-gradient(160deg,#4a2810,#1e0a02);border:1px solid rgba(201,168,76,.48);border-radius:20px;padding:24px 24px 20px;text-align:center;box-shadow:0 20px 60px rgba(0,0,0,.9);width:100%;max-width:360px;max-height:90vh;overflow-y:auto;}
+.rc-label{font-size:10px;letter-spacing:5px;color:rgba(201,168,76,.42);text-transform:uppercase;margin-bottom:5px;}
+.rc-winner{font-size:26px;font-weight:bold;color:var(--cream);letter-spacing:2px;margin-bottom:12px;}
+.rc-bar-wrap{margin-bottom:12px;}
+.rc-bar-nums{display:flex;justify-content:space-between;margin-bottom:3px;}
+.rc-bar-num{font-size:24px;font-weight:bold;color:var(--cream);}
+.rc-bar-lbl{font-size:10px;letter-spacing:2px;color:rgba(201,168,76,.36);text-transform:uppercase;text-align:center;margin-bottom:5px;}
+.rc-bar{width:100%;height:6px;background:rgba(255,255,255,.07);border-radius:3px;overflow:hidden;}
+.rc-bar-fill{height:100%;border-radius:3px;transition:width .7s ease;}
+.rc-bar-fill.black{background:linear-gradient(90deg,#666,#222);}
+
+/* New medals in result */
+.rc-medals{display:flex;gap:6px;justify-content:center;flex-wrap:wrap;margin-bottom:12px;min-height:0;}
+.rc-medal-chip{display:flex;align-items:center;gap:5px;background:rgba(201,168,76,.1);border:1px solid rgba(201,168,76,.3);border-radius:20px;padding:5px 10px;font-size:12px;color:rgba(201,168,76,.9);}
+
+.rc-pts-box{background:rgba(201,168,76,.06);border:1px solid rgba(201,168,76,.18);border-radius:11px;padding:10px 14px;margin-bottom:10px;display:flex;flex-direction:column;gap:4px;}
+.rc-pts-row{display:flex;justify-content:space-between;align-items:center;}
+.rc-pts-label{font-size:11px;color:rgba(201,168,76,.48);text-transform:uppercase;letter-spacing:1px;}
+.rc-pts-val{font-size:16px;font-weight:bold;color:var(--gold-l);}
+.rc-pts-total-val{font-size:13px;color:rgba(245,238,216,.5);}
+.rc-streak-bonus{font-size:11px;color:rgba(255,180,60,.8);}
+.rc-rank-box{display:flex;align-items:center;justify-content:center;gap:9px;margin-bottom:12px;}
+.rc-rank-old{font-size:13px;color:rgba(245,238,216,.32);}
+.rc-rank-arrow{font-size:15px;color:rgba(201,168,76,.38);}
+.rc-rank-new{font-size:19px;font-weight:bold;color:var(--gold-l);}
+.rc-rank-new.up{color:#7ee8a2;}
+.rc-ach-new{background:rgba(201,168,76,.06);border:1px solid rgba(201,168,76,.16);border-radius:9px;padding:7px 12px;margin-bottom:10px;font-size:12px;color:rgba(201,168,76,.82);display:none;text-align:left;}
+.rc-ach-new.show{display:block;}
+.rc-hardcore-loss{background:rgba(150,15,15,.15);border:1px solid rgba(255,70,70,.22);border-radius:9px;padding:7px 12px;margin-bottom:10px;font-size:12px;color:rgba(255,130,130,.9);display:none;}
+.rc-hardcore-loss.show{display:block;}
+.rc-btns{display:flex;flex-direction:column;gap:8px;}
+.btn-again{background:linear-gradient(135deg,var(--gold),#8a6a20);border:none;color:#1a0f00;padding:13px;border-radius:9px;font-size:13px;font-weight:bold;letter-spacing:4px;text-transform:uppercase;cursor:pointer;font-family:Georgia,serif;box-shadow:0 4px 12px rgba(0,0,0,.5),inset 0 1px 0 rgba(255,255,255,.3);transition:opacity .15s;}
+.btn-again:active{opacity:.8;}
+.btn-tomenu{background:transparent;border:1px solid rgba(201,168,76,.22);color:rgba(201,168,76,.5);padding:10px;border-radius:9px;font-size:12px;letter-spacing:3px;text-transform:uppercase;cursor:pointer;font-family:Georgia,serif;transition:opacity .15s;}
+.btn-tomenu:active{opacity:.7;}
+
+/* Achievement / Medal popup */
+@keyframes pop-in{0%{transform:translateX(-50%) translateY(-50px);opacity:0;}15%{transform:translateX(-50%) translateY(0);opacity:1;}80%{transform:translateX(-50%) translateY(0);opacity:1;}100%{transform:translateX(-50%) translateY(-50px);opacity:0;}}
+.ach-popup{position:fixed;top:calc(var(--sat)+14px);left:50%;transform:translateX(-50%) translateY(-50px);z-index:200;background:linear-gradient(135deg,#4a2810,#2a1406);border:1px solid var(--gold);border-radius:13px;padding:10px 18px;display:flex;align-items:center;gap:11px;box-shadow:0 6px 22px rgba(0,0,0,.8);opacity:0;pointer-events:none;white-space:nowrap;}
+.ach-popup.show{animation:pop-in 3.2s ease forwards;}
+.ach-popup-icon{font-size:22px;}
+.ach-popup-sub{font-size:9px;letter-spacing:2px;color:rgba(201,168,76,.5);text-transform:uppercase;}
+.ach-popup-name{font-size:14px;font-weight:bold;color:var(--gold-l);}
+
+/* RESPONSIVE */
+@media(min-width:540px){
+  :root{--max:480px;}
+  .start-inner{padding:calc(var(--sat)+28px) 28px calc(var(--sab)+28px);}
+  .game-safe{padding:calc(var(--sat)+20px) 28px calc(var(--sab)+12px);}
+  .sheet-inner{padding:0 32px;}
+}
+@media(min-width:840px){
+  :root{--max:500px;}
+  #screen-start{display:flex;align-items:center;justify-content:center;}
+  .start-wrap{max-width:500px;min-height:auto;}
+  .start-inner{padding:36px 36px 36px;}
+  #screen-game{display:flex;align-items:center;justify-content:center;}
+  .game-safe{padding:32px 36px 20px;max-height:100vh;}
+  .overlay-card{max-width:380px;}
+}
+</style>
+</head>
+<body>
+<div class="bg"></div>
+<div class="ach-popup" id="ach-popup">
+  <span class="ach-popup-icon" id="ach-popup-icon">🏅</span>
+  <div><div class="ach-popup-sub" id="ach-popup-sub">実績解除!</div><div class="ach-popup-name" id="ach-popup-name">—</div></div>
+</div>
+
+<!-- ════ START ════ -->
+<div class="screen" id="screen-start">
+ <div class="start-wrap">
+  <div class="start-inner">
+   <div class="logo-area">
+    <div class="logo-discs"><div class="ld b"></div><div class="ld w"></div></div>
+    <div class="logo-title">Othello</div>
+    <div class="logo-sub">Classic Board Game</div>
+   </div>
+
+   <div class="rank-badge">
+    <div><div class="rb-lbl">称号</div><div class="rb-rank" id="rb-rank">石ころ</div></div>
+    <div class="rb-right"><div class="rb-pts" id="rb-pts">0 pt</div><div class="rb-streak" id="rb-streak"></div></div>
+   </div>
+
+   <!-- Tabs: 対局 / メダル / スキン / 実績 / 記録 -->
+   <div class="nav-tabs">
+    <div class="nav-tab act" onclick="switchTab('play')">対局</div>
+    <div class="nav-tab" onclick="switchTab('medal')">メダル</div>
+    <div class="nav-tab" onclick="switchTab('skin')">スキン</div>
+    <div class="nav-tab" onclick="switchTab('ach')">実績</div>
+    <div class="nav-tab" onclick="switchTab('stats')">記録</div>
+   </div>
+
+   <!-- ── PLAY TAB ── -->
+   <div class="tab-panel act" id="tab-play">
+    <div class="mode-section">
+     <div class="pvp-card sel" id="mc-pvp" onclick="selectMode('pvp')">
+      <div class="pvp-icon"><div class="mi b"></div><div class="mi w"></div></div>
+      <div><div class="pvp-name">2人対戦</div><div class="pvp-desc">同じ端末でプレイ</div></div>
+     </div>
+     <div class="mode-grid">
+      <div class="diff-card" id="mc-easy" onclick="selectMode('easy')">
+       <div class="diff-stars"><div class="star on"></div><div class="star"></div><div class="star"></div></div>
+       <div class="diff-icon">🤖</div>
+       <div class="diff-name">CPU<br>初級</div><div class="diff-pts">×1 pt</div>
+      </div>
+      <div class="diff-card" id="mc-medium" onclick="selectMode('medium')">
+       <div class="diff-stars"><div class="star on"></div><div class="star on"></div><div class="star"></div></div>
+       <div class="diff-icon">🤖</div>
+       <div class="diff-name">CPU<br>中級</div><div class="diff-pts">×2 pt</div>
+      </div>
+      <div class="diff-card" id="mc-hard" onclick="selectMode('hard')">
+       <div class="diff-stars"><div class="star on"></div><div class="star on"></div><div class="star on"></div></div>
+       <div class="diff-icon">🤖</div>
+       <div class="diff-name">CPU<br>上級</div><div class="diff-pts">×3 pt</div>
+      </div>
+     </div>
+    </div>
+    <div class="options-row">
+     <div class="options-chips" id="options-chips"></div>
+     <button class="btn-options" onclick="openSheet()">⚙ オプション</button>
+    </div>
+    <button class="btn-start" onclick="startGame()">GAME  START</button>
+   </div>
+
+   <!-- ── MEDAL TAB ── -->
+   <div class="tab-panel" id="tab-medal">
+    <div class="medals-header">
+     <span class="medals-title">獲得メダル</span>
+     <span class="medals-count" id="medal-count-lbl">0 / 0</span>
+    </div>
+    <div class="medals-grid" id="medals-grid"></div>
+   </div>
+
+   <!-- ── SKIN TAB ── -->
+   <div class="tab-panel" id="tab-skin">
+    <div class="skin-grid" id="skin-grid"></div>
+   </div>
+
+   <!-- ── ACH TAB ── -->
+   <div class="tab-panel" id="tab-ach">
+    <div class="ach-list" id="ach-list"></div>
+   </div>
+
+   <!-- ── STATS TAB ── -->
+   <div class="tab-panel" id="tab-stats">
+    <div class="stats-section">
+     <div class="stats-heading">CPU対局</div>
+     <div class="stats-grid">
+      <div class="stat-box"><div class="stat-val" id="stat-cpuwins">0</div><div class="stat-lbl">勝利</div></div>
+      <div class="stat-box"><div class="stat-val" id="stat-cpugames">0</div><div class="stat-lbl">対局</div></div>
+      <div class="stat-box"><div class="stat-val" id="stat-winrate">—</div><div class="stat-lbl">勝率</div></div>
+     </div>
+    </div>
+    <div class="stats-section">
+     <div class="stats-heading">連勝記録</div>
+     <div class="streak-info-box">
+      <div class="sib-item"><div class="sib-val" id="sib-cur">0</div><div class="sib-lbl">現在</div></div>
+      <div class="sib-item"><div class="sib-val" id="sib-max">0</div><div class="sib-lbl">最高</div></div>
+     </div>
+    </div>
+    <div class="stats-section">
+     <div class="stats-heading">難易度別勝利</div>
+     <div class="stats-grid">
+      <div class="stat-box"><div class="stat-val" id="stat-easywins">0</div><div class="stat-lbl">初級</div></div>
+      <div class="stat-box"><div class="stat-val" id="stat-medwins">0</div><div class="stat-lbl">中級</div></div>
+      <div class="stat-box"><div class="stat-val" id="stat-hardwins">0</div><div class="stat-lbl">上級</div></div>
+     </div>
+    </div>
+    <div class="stats-section">
+     <div class="stats-heading">その他</div>
+     <div class="stats-grid">
+      <div class="stat-box"><div class="stat-val" id="stat-pvpgames">0</div><div class="stat-lbl">PvP</div></div>
+      <div class="stat-box"><div class="stat-val" id="stat-hcwins">0</div><div class="stat-lbl">HC勝利</div></div>
+      <div class="stat-box"><div class="stat-val" id="stat-handiwins">0</div><div class="stat-lbl">ハンデ勝</div></div>
+     </div>
+    </div>
+   </div>
+  </div>
+ </div>
+</div>
+
+<!-- ════ SETTINGS SHEET ════ -->
+<div class="sheet-bg" id="sheet-bg" onclick="closeSheet()"></div>
+<div class="sheet" id="settings-sheet">
+ <div class="sheet-inner">
+  <div class="sheet-handle"></div>
+  <div class="sheet-title">オプション</div>
+  <div class="sheet-section" id="sheet-color-section">
+   <div class="sheet-label">あなたの色</div>
+   <div class="color-cards">
+    <div class="color-card sel" id="cc-b" onclick="selectColor('black')">
+     <div class="cc-disc" id="cc-disc-b"></div><div class="cc-name">黒</div><div class="cc-sub">先手</div>
+    </div>
+    <div class="color-card" id="cc-w" onclick="selectColor('white')">
+     <div class="cc-disc" id="cc-disc-w"></div><div class="cc-name">白</div><div class="cc-sub">後手</div>
+    </div>
+   </div>
+  </div>
+  <div class="sheet-section">
+   <div class="sheet-label">モディファイア</div>
+   <div class="modifier-row">
+    <div class="mod-card" id="mc-hc" onclick="toggleHardcore()">
+     <div class="mod-icon">💀</div>
+     <div><div class="mod-name">ハードコア</div><div class="mod-desc">負けでPT没収</div></div>
+    </div>
+    <div class="mod-card" id="mc-handi" onclick="toggleHandicap()">
+     <div class="mod-icon">🎲</div>
+     <div><div class="mod-name">ランダムハンデ</div><div class="mod-desc">不利スタート</div></div>
+    </div>
+   </div>
+  </div>
+  <div class="sheet-section">
+   <div class="sheet-label">サウンド</div>
+   <div class="sound-row">
+    <span class="sound-lbl">効果音</span>
+    <div class="sound-toggle on" id="sound-toggle" onclick="toggleSound()"></div>
+   </div>
+  </div>
+  <button class="sheet-close" onclick="closeSheet()">完了</button>
+ </div>
+</div>
+
+<!-- ════ GAME ════ -->
+<div class="screen hidden" id="screen-game">
+ <div class="game-wrap">
+  <div class="game-safe">
+   <div class="top-bar">
+    <button class="btn-back" onclick="goToStart()">&#8592;</button>
+    <div class="game-title">OTHELLO</div>
+    <div class="top-right">
+     <button class="btn-undo off" id="btn-undo" onclick="doUndo()">↩<span class="undo-count" id="undo-count">1</span></button>
+     <button class="btn-restart" onclick="restartGame()">再戦</button>
+    </div>
+   </div>
+   <div class="info-row">
+    <div class="mode-tags" id="mode-tags"></div>
+    <span class="streak-txt" id="streak-txt"></span>
+   </div>
+   <div class="turn-banner tb-black" id="turn-banner">
+    <div class="tb-disc" id="tb-disc"></div>
+    <div class="tb-center"><div class="tb-lbl">NOW TURN</div><div class="tb-name" id="tb-name">BLACK</div></div>
+    <div class="tb-sub" id="tb-sub">先手</div>
+   </div>
+   <div class="score-row">
+    <div class="score-pill" id="pill-b">
+     <div class="sp-disc" id="sp-disc-b"></div>
+     <div class="sp-info"><div class="sp-pname" id="pname-b">BLACK</div><div class="sp-count" id="cnt-b">2</div></div>
+    </div>
+    <div class="score-pill" id="pill-w">
+     <div class="sp-disc" id="sp-disc-w"></div>
+     <div class="sp-info"><div class="sp-pname" id="pname-w">WHITE</div><div class="sp-count" id="cnt-w">2</div></div>
+    </div>
+   </div>
+   <div class="board-wrap" id="board-wrap">
+    <div class="board" id="board"></div>
+    <div class="pass-notice" id="pass-notice">
+     <div class="pass-inner"><div class="pass-title">PASS</div><div class="pass-msg" id="pass-msg"></div></div>
+    </div>
+   </div>
+  </div>
+ </div>
+</div>
+
+<!-- ════ RESULT ════ -->
+<div class="overlay-base" id="result-overlay">
+ <div class="overlay-card">
+  <div class="rc-label">Game Over</div>
+  <div class="rc-winner" id="rc-winner">—</div>
+  <div class="rc-bar-wrap">
+   <div class="rc-bar-nums"><span class="rc-bar-num" id="rcs-b">0</span><span class="rc-bar-num" id="rcs-w">0</span></div>
+   <div class="rc-bar-lbl">Black — White</div>
+   <div class="rc-bar"><div class="rc-bar-fill black" id="rc-bar-b" style="width:50%"></div></div>
+  </div>
+  <div class="rc-medals" id="rc-medals"></div>
+  <div class="rc-hardcore-loss" id="rc-hardcore-loss"></div>
+  <div class="rc-pts-box" id="rc-pts-box" style="display:none;">
+   <div class="rc-pts-row"><span class="rc-pts-label">獲得PT</span><span class="rc-pts-val" id="rc-pts-earned">+0 pt</span></div>
+   <div class="rc-pts-row"><span class="rc-streak-bonus" id="rc-streak-bonus"></span></div>
+   <div class="rc-pts-row"><span class="rc-pts-label">合計</span><span class="rc-pts-total-val" id="rc-pts-total">0 pt</span></div>
+  </div>
+  <div class="rc-rank-box" id="rc-rank-box" style="display:none;">
+   <span class="rc-rank-old" id="rc-rank-old">—</span><span class="rc-rank-arrow">→</span><span class="rc-rank-new" id="rc-rank-new">—</span>
+  </div>
+  <div class="rc-ach-new" id="rc-ach-new"></div>
+  <div class="rc-btns">
+   <button class="btn-again" onclick="restartGame()">PLAY AGAIN</button>
+   <button class="btn-tomenu" onclick="goToStart()">MENU へ戻る</button>
+  </div>
+ </div>
+</div>
+
+<script>
+/* ══════════════════════════════════════════
+   SOUND
+══════════════════════════════════════════ */
+var audioCtx=null,soundOn=(localStorage.getItem('oth_sound')!=='0');
+function getCtx(){if(!audioCtx)audioCtx=new(window.AudioContext||window.webkitAudioContext)();if(audioCtx.state==='suspended')audioCtx.resume();return audioCtx;}
+function playTone(freq,type,dur,vol,delay){delay=delay||0;if(!soundOn)return;try{var ctx=getCtx(),o=ctx.createOscillator(),g=ctx.createGain();o.connect(g);g.connect(ctx.destination);o.type=type;o.frequency.setValueAtTime(freq,ctx.currentTime+delay);g.gain.setValueAtTime(vol,ctx.currentTime+delay);g.gain.exponentialRampToValueAtTime(0.001,ctx.currentTime+delay+dur);o.start(ctx.currentTime+delay);o.stop(ctx.currentTime+delay+dur+.01);}catch(e){}}
+function soundPlace(){if(!soundOn)return;try{var ctx=getCtx(),buf=ctx.createBuffer(1,Math.floor(ctx.sampleRate*.06),ctx.sampleRate),d=buf.getChannelData(0);for(var i=0;i<d.length;i++)d[i]=(Math.random()*2-1)*Math.pow(1-i/d.length,2);var src=ctx.createBufferSource();src.buffer=buf;var f=ctx.createBiquadFilter();f.type='bandpass';f.frequency.value=1200;f.Q.value=1.5;var g=ctx.createGain();g.gain.setValueAtTime(1.1,ctx.currentTime);g.gain.exponentialRampToValueAtTime(0.001,ctx.currentTime+.07);src.connect(f);f.connect(g);g.connect(ctx.destination);src.start();src.stop(ctx.currentTime+.08);playTone(180,'sine',.05,.65);}catch(e){}}
+function soundFlip(n){if(!soundOn)return;for(var i=0;i<Math.min(n,6);i++)playTone(420+14*i,'triangle',.07,.35,i*.04);}
+function soundStart(){if(!soundOn)return;[261.6,329.6,392,523.2].forEach(function(f,i){playTone(f,'sine',.5,.38,i*.07);});playTone(130.8,'sine',.55,.45);}
+function soundWin(){if(!soundOn)return;[523,659,784,1047].forEach(function(f,i){playTone(f,'sine',.28,.42,i*.11);});playTone(1047,'sine',.55,.35,.44);}
+function soundLose(){if(!soundOn)return;playTone(330,'sawtooth',.1,.35);playTone(277,'sawtooth',.1,.35,.13);playTone(246,'sawtooth',.22,.4,.26);}
+function soundPass(){if(!soundOn)return;playTone(300,'sine',.09,.3);playTone(250,'sine',.13,.3,.11);}
+function soundUndo(){if(!soundOn)return;playTone(600,'sine',.09,.35);playTone(480,'sine',.11,.35,.09);}
+function soundAch(){if(!soundOn)return;[660,880,1100].forEach(function(f,i){playTone(f,'sine',.18,.28,i*.08);});}
+function soundMedal(){if(!soundOn)return;[784,1047,1319].forEach(function(f,i){playTone(f,'sine',.3,.4,i*.1);});}
+function toggleSound(){soundOn=!soundOn;localStorage.setItem('oth_sound',soundOn?'1':'0');document.getElementById('sound-toggle').classList.toggle('on',soundOn);if(soundOn)soundPlace();}
+
+/* ══════════════════════════════════════════
+   CONSTANTS
+══════════════════════════════════════════ */
+var EMPTY=0,BLACK=1,WHITE=2;
+var DIRS=[[-1,-1],[-1,0],[-1,1],[0,-1],[0,1],[1,-1],[1,0],[1,1]];
+var RANKS=[
+  {pts:0,   title:'石ころ'},   {pts:10,  title:'見習い'},
+  {pts:30,  title:'平石'},     {pts:60,  title:'銅石'},
+  {pts:100, title:'銀石'},     {pts:160, title:'金石'},
+  {pts:240, title:'白翡翠'},   {pts:350, title:'黒曜石'},
+  {pts:500, title:'名手'},     {pts:700, title:'達人'},
+  {pts:950, title:'師匠'},     {pts:1250,title:'グランドマスター'},
+];
+function getRank(pts){var r=RANKS[0];for(var i=0;i<RANKS.length;i++)if(pts>=RANKS[i].pts)r=RANKS[i];return r;}
+
+/* ══════════════════════════════════════════
+   MEDALS  (cosmetic awards shown in game-over and medal tab)
+   Each medal is earned once and stored persistently.
+   medal.check(gameData) → true/false  (gameData is built fresh per game)
+══════════════════════════════════════════ */
+var MEDALS=[
+  // -- Victory medals --
+  {id:'m_firstwin',  emoji:'🥇', name:'初勝利',   cat:'勝利', check:function(g,s){return g.cpuWin;}},
+  {id:'m_win5',      emoji:'🎖', name:'5勝',      cat:'勝利', check:function(g,s){return s.cpuWins>=5;}},
+  {id:'m_win20',     emoji:'🏅', name:'20勝',     cat:'勝利', check:function(g,s){return s.cpuWins>=20;}},
+  {id:'m_win50',     emoji:'🥈', name:'50勝',     cat:'勝利', check:function(g,s){return s.cpuWins>=50;}},
+  {id:'m_win100',    emoji:'🥇', name:'100勝',    cat:'勝利', check:function(g,s){return s.cpuWins>=100;}},
+  {id:'m_win200',    emoji:'👑', name:'200勝',    cat:'勝利', check:function(g,s){return s.cpuWins>=200;}},
+  // -- Streak medals --
+  {id:'m_str3',      emoji:'⚡', name:'3連勝',    cat:'連勝', check:function(g,s){return s.maxStreak>=3;}},
+  {id:'m_str5',      emoji:'🔥', name:'5連勝',    cat:'連勝', check:function(g,s){return s.maxStreak>=5;}},
+  {id:'m_str10',     emoji:'🌪', name:'10連勝',   cat:'連勝', check:function(g,s){return s.maxStreak>=10;}},
+  {id:'m_str20',     emoji:'💥', name:'20連勝',   cat:'連勝', check:function(g,s){return s.maxStreak>=20;}},
+  // -- Difficulty medals --
+  {id:'m_easy1',     emoji:'🤖', name:'初級突破',  cat:'難易度', check:function(g,s){return g.cpuWin&&g.diff==='easy';}},
+  {id:'m_med1',      emoji:'⚙',  name:'中級突破',  cat:'難易度', check:function(g,s){return g.cpuWin&&g.diff==='medium';}},
+  {id:'m_hard1',     emoji:'🛡', name:'上級突破',  cat:'難易度', check:function(g,s){return g.cpuWin&&g.diff==='hard';}},
+  {id:'m_hard5',     emoji:'⚔',  name:'上級5勝',  cat:'難易度', check:function(g,s){return s.hardWins>=5;}},
+  // -- Special medals --
+  {id:'m_perfect',   emoji:'💯', name:'完璧',      cat:'特殊', check:function(g,s){return g.perfect;}},
+  {id:'m_comeback',  emoji:'🔄', name:'大逆転',    cat:'特殊', check:function(g,s){return g.bigFlip;}},
+  {id:'m_dominant',  emoji:'👊', name:'圧勝',      cat:'特殊', check:function(g,s){return g.cpuWin&&g.margin>=20;}},
+  {id:'m_clutch',    emoji:'💎', name:'僅差勝利',  cat:'特殊', check:function(g,s){return g.cpuWin&&g.margin<=3&&g.margin>0;}},
+  {id:'m_hardcore',  emoji:'💀', name:'修羅',      cat:'特殊', check:function(g,s){return g.cpuWin&&g.hardcore;}},
+  {id:'m_handi',     emoji:'🎲', name:'逆境の王',  cat:'特殊', check:function(g,s){return g.cpuWin&&g.handicap;}},
+  // -- Rank medals --
+  {id:'m_silver',    emoji:'🥈', name:'銀石到達',  cat:'称号', check:function(g,s){return s.totalPts>=100;}},
+  {id:'m_gold',      emoji:'🥇', name:'金石到達',  cat:'称号', check:function(g,s){return s.totalPts>=160;}},
+  {id:'m_obsidian',  emoji:'🖤', name:'黒曜石到達',cat:'称号', check:function(g,s){return s.totalPts>=350;}},
+  {id:'m_master',    emoji:'🏆', name:'名手到達',  cat:'称号', check:function(g,s){return s.totalPts>=500;}},
+  {id:'m_gm',        emoji:'✨', name:'GM到達',    cat:'称号', check:function(g,s){return s.totalPts>=1250;}},
+];
+
+/* ══════════════════════════════════════════
+   ACHIEVEMENTS  (grant points + trigger popup)
+══════════════════════════════════════════ */
+var ACHDEF=[
+  // wins
+  {id:'a_firstwin', icon:'🏆',name:'初勝利',           desc:'CPU戦に初めて勝利する',         reward:'+10 pt',pts:10,
+   prog:function(s){return{cur:s.cpuWins,max:1};},    check:function(s){return s.cpuWins>=1;}},
+  {id:'a_win5',     icon:'🎯',name:'5勝達成',           desc:'CPU戦で5勝する',                reward:'+15 pt',pts:15,
+   prog:function(s){return{cur:s.cpuWins,max:5};},    check:function(s){return s.cpuWins>=5;}},
+  {id:'a_win10',    icon:'🔥',name:'10勝達成',          desc:'CPU戦で10勝する',               reward:'+30 pt',pts:30,
+   prog:function(s){return{cur:s.cpuWins,max:10};},   check:function(s){return s.cpuWins>=10;}},
+  {id:'a_win30',    icon:'⚡',name:'30勝達成',          desc:'CPU戦で30勝する',               reward:'+50 pt',pts:50,
+   prog:function(s){return{cur:s.cpuWins,max:30};},   check:function(s){return s.cpuWins>=30;}},
+  {id:'a_win50',    icon:'👑',name:'50勝達成',          desc:'CPU戦で50勝する',               reward:'+80 pt',pts:80,
+   prog:function(s){return{cur:s.cpuWins,max:50};},   check:function(s){return s.cpuWins>=50;}},
+  {id:'a_win100',   icon:'🌟',name:'100勝達成',         desc:'CPU戦で100勝する',              reward:'+150 pt',pts:150,
+   prog:function(s){return{cur:s.cpuWins,max:100};},  check:function(s){return s.cpuWins>=100;}},
+  // streaks — checked against maxStreak which only grows
+  {id:'a_str3',     icon:'💫',name:'3連勝',             desc:'CPU戦を3連続勝利',              reward:'+10 pt',pts:10,
+   prog:function(s){return{cur:Math.min(s.curStreak,3),max:3};}, check:function(s){return s.maxStreak>=3;}},
+  {id:'a_str5',     icon:'⚡',name:'5連勝',             desc:'CPU戦を5連続勝利',              reward:'+25 pt',pts:25,
+   prog:function(s){return{cur:Math.min(s.curStreak,5),max:5};}, check:function(s){return s.maxStreak>=5;}},
+  {id:'a_str10',    icon:'🌪',name:'10連勝',            desc:'CPU戦を10連続勝利',             reward:'+60 pt',pts:60,
+   prog:function(s){return{cur:Math.min(s.curStreak,10),max:10};},check:function(s){return s.maxStreak>=10;}},
+  {id:'a_str20',    icon:'💥',name:'20連勝',            desc:'CPU戦を20連続勝利',             reward:'+120 pt',pts:120,
+   prog:function(s){return{cur:Math.min(s.curStreak,20),max:20};},check:function(s){return s.maxStreak>=20;}},
+  // difficulty
+  {id:'a_easy1',    icon:'🤖',name:'初級初勝利',        desc:'CPU初級に勝利する',             reward:'+5 pt',pts:5,
+   check:function(s){return s.easyWins>=1;}},
+  {id:'a_med1',     icon:'⚙', name:'中級初勝利',        desc:'CPU中級に勝利する',             reward:'+15 pt',pts:15,
+   check:function(s){return s.medWins>=1;}},
+  {id:'a_hard1',    icon:'🛡',name:'上級初勝利',        desc:'CPU上級に勝利する',             reward:'+30 pt',pts:30,
+   check:function(s){return s.hardWins>=1;}},
+  {id:'a_hard10',   icon:'⚔', name:'上級10勝',          desc:'CPU上級で10勝する',             reward:'+80 pt',pts:80,
+   prog:function(s){return{cur:s.hardWins,max:10};},  check:function(s){return s.hardWins>=10;}},
+  // special
+  {id:'a_perfect',  icon:'⭐',name:'完璧な勝利',        desc:'64マス全て自分の石にする',      reward:'+50 pt',pts:50,
+   check:function(s){return s.perfectCount>=1;}},
+  {id:'a_comeback', icon:'🔄',name:'大逆転',            desc:'一手で7枚以上ひっくり返す',     reward:'+20 pt',pts:20,
+   check:function(s){return s.bigFlipCount>=1;}},
+  {id:'a_dominant', icon:'👊',name:'圧勝',              desc:'20石差以上でCPUに勝利',         reward:'+20 pt',pts:20,
+   check:function(s){return s.dominantWins>=1;}},
+  {id:'a_clutch',   icon:'💎',name:'僅差勝利',          desc:'3石差以内でCPUに勝利',          reward:'+15 pt',pts:15,
+   check:function(s){return s.clutchWins>=1;}},
+  {id:'a_hardcore', icon:'💀',name:'修羅',              desc:'ハードコアモードでCPUに勝利',   reward:'+40 pt',pts:40,
+   check:function(s){return s.hardcoreWins>=1;}},
+  {id:'a_handi',    icon:'🎲',name:'逆境の王',          desc:'ランダムハンデ戦でCPUに勝利',  reward:'+30 pt',pts:30,
+   check:function(s){return s.handicapWins>=1;}},
+  {id:'a_both',     icon:'🌈',name:'全難易度制覇',      desc:'初・中・上級それぞれ1勝以上',   reward:'+40 pt',pts:40,
+   check:function(s){return s.easyWins>=1&&s.medWins>=1&&s.hardWins>=1;}},
+  // rank
+  {id:'a_gold',     icon:'✨',name:'金石到達',          desc:'称号「金石」に到達する',        reward:'',pts:0,
+   check:function(s){return s.totalPts>=160;}},
+  {id:'a_gm',       icon:'💎',name:'グランドマスター',  desc:'称号「GM」に到達する',          reward:'',pts:0,
+   check:function(s){return s.totalPts>=1250;}},
+];
+
+/* ══════════════════════════════════════════
+   PERSISTENT STATE
+══════════════════════════════════════════ */
+function ld(k,def){try{var v=localStorage.getItem(k);return v===null?def:JSON.parse(v);}catch(e){return def;}}
+function sv(k,v){try{localStorage.setItem(k,JSON.stringify(v));}catch(e){}}
+function saveAll(){
+  sv('oth2_pts',totalPts);sv('oth2_streak',winStreak);sv('oth2_mstreak',maxStreak);
+  sv('oth2_cpuwins',cpuWins);sv('oth2_cpugames',cpuGames);sv('oth2_pvpgames',pvpGames);
+  sv('oth2_ewins',easyWins);sv('oth2_mwins',medWins);sv('oth2_hwins',hardWins);
+  sv('oth2_hcwins',hardcoreWins);sv('oth2_handiwins',handicapWins);
+  sv('oth2_perf',perfectCount);sv('oth2_bigf',bigFlipCount);
+  sv('oth2_dom',dominantWins);sv('oth2_clutch',clutchWins);
+  sv('oth2_ach',achUnlocked);sv('oth2_medals',medalsEarned);
+  sv('oth2_skins',ownedSkins);sv('oth2_skin',equippedSkin);
+}
+
+var totalPts    = ld('oth2_pts',0);
+var winStreak   = ld('oth2_streak',0);
+var maxStreak   = ld('oth2_mstreak',0);
+var cpuWins     = ld('oth2_cpuwins',0);
+var cpuGames    = ld('oth2_cpugames',0);
+var pvpGames    = ld('oth2_pvpgames',0);
+var easyWins    = ld('oth2_ewins',0);
+var medWins     = ld('oth2_mwins',0);
+var hardWins    = ld('oth2_hwins',0);
+var hardcoreWins= ld('oth2_hcwins',0);
+var handicapWins= ld('oth2_handiwins',0);
+var perfectCount= ld('oth2_perf',0);
+var bigFlipCount= ld('oth2_bigf',0);
+var dominantWins= ld('oth2_dom',0);
+var clutchWins  = ld('oth2_clutch',0);
+var achUnlocked = ld('oth2_ach',{});
+var medalsEarned= ld('oth2_medals',{});
+var ownedSkins  = ld('oth2_skins',{'classic':true});
+var equippedSkin= ld('oth2_skin','classic');
+
+function makeAchStats(){
+  return{
+    cpuWins:cpuWins,maxStreak:maxStreak,curStreak:winStreak,
+    easyWins:easyWins,medWins:medWins,hardWins:hardWins,
+    hardcoreWins:hardcoreWins,handicapWins:handicapWins,
+    perfectCount:perfectCount,bigFlipCount:bigFlipCount,
+    dominantWins:dominantWins,clutchWins:clutchWins,
+    totalPts:totalPts,
+  };
+}
+
+/* ══════════════════════════════════════════
+   SKINS
+══════════════════════════════════════════ */
+var SKINS=[
+  {id:'classic',name:'クラシック',cost:0,   unlockAch:null},
+  {id:'gold',   name:'ゴールド',  cost:150, unlockAch:null},
+  {id:'fire',   name:'炎',        cost:200, unlockAch:'a_hard1'},
+  {id:'ice',    name:'氷',        cost:200, unlockAch:null},
+  {id:'galaxy', name:'銀河',      cost:350, unlockAch:'a_gm'},
+];
+var DS={
+  classic:{b:'radial-gradient(circle at 38% 30%,#686868,#2a2a2a 30%,#000)',w:'radial-gradient(circle at 38% 28%,#fff,#f0ece0 30%,#c0bdb0)'},
+  gold:   {b:'radial-gradient(circle at 35% 28%,#f5d060,#c9910a 40%,#6b4a00)',w:'radial-gradient(circle at 35% 28%,#fffbe0,#e8c84a 40%,#b8980a)'},
+  fire:   {b:'radial-gradient(circle at 35% 28%,#ff9944,#cc3300 40%,#550000)',w:'radial-gradient(circle at 35% 28%,#ffe066,#ff8800 40%,#cc4400)'},
+  ice:    {b:'radial-gradient(circle at 35% 28%,#b0e8ff,#5ab0e0 40%,#0060a0)',w:'radial-gradient(circle at 35% 28%,#eaf8ff,#b8e8ff 40%,#70c8f0)'},
+  galaxy: {b:'radial-gradient(circle at 35% 28%,#9966ff,#440088 40%,#110022)',w:'radial-gradient(circle at 35% 28%,#ffccff,#cc88ff 40%,#8844cc)'},
+};
+function discBg(color){var s=DS[equippedSkin]||DS['classic'];return color==='black'?s.b:s.w;}
+
+/* ══════════════════════════════════════════
+   GAME STATE
+══════════════════════════════════════════ */
+var mode='pvp',playerColor='black',hardcoreMode=false,handicapMode=false;
+var board=[],current=BLACK,gameOver=false,animating=false;
+var undoStack=[],undoUsed=false,lastMoveRC=null;
+var maxFlipInTurn=0;
+
+/* ══════════════════════════════════════════
+   UI – START SCREEN
+══════════════════════════════════════════ */
+function switchTab(t){
+  ['play','medal','skin','ach','stats'].forEach(function(id){
+    document.getElementById('tab-'+id).classList.toggle('act',id===t);
+  });
+  document.querySelectorAll('.nav-tab').forEach(function(el,i){
+    el.classList.toggle('act',['play','medal','skin','ach','stats'][i]===t);
+  });
+  if(t==='medal')renderMedals();
+  if(t==='skin')renderSkinGrid();
+  if(t==='ach')renderAchList();
+  if(t==='stats')renderStats();
+}
+
+function updateStartUI(){
+  var r=getRank(totalPts);
+  document.getElementById('rb-rank').textContent=r.title;
+  document.getElementById('rb-pts').textContent=totalPts+' pt';
+  document.getElementById('rb-streak').textContent=winStreak>=2?'🔥 '+winStreak+' 連勝中':'';
+  document.getElementById('sound-toggle').classList.toggle('on',soundOn);
+  var bEl=document.getElementById('cc-disc-b'),wEl=document.getElementById('cc-disc-w');
+  if(bEl)bEl.style.background=discBg('black');
+  if(wEl)wEl.style.background=discBg('white');
+}
+
+function renderStats(){
+  document.getElementById('stat-cpuwins').textContent=cpuWins;
+  document.getElementById('stat-cpugames').textContent=cpuGames;
+  document.getElementById('stat-winrate').textContent=cpuGames>0?Math.round(cpuWins/cpuGames*100)+'%':'—';
+  document.getElementById('sib-cur').textContent=winStreak;
+  document.getElementById('sib-max').textContent=maxStreak;
+  document.getElementById('stat-easywins').textContent=easyWins;
+  document.getElementById('stat-medwins').textContent=medWins;
+  document.getElementById('stat-hardwins').textContent=hardWins;
+  document.getElementById('stat-pvpgames').textContent=pvpGames;
+  document.getElementById('stat-hcwins').textContent=hardcoreWins;
+  document.getElementById('stat-handiwins').textContent=handicapWins;
+}
+
+/* ── Medal grid ── */
+function renderMedals(){
+  var g=document.getElementById('medals-grid');g.innerHTML='';
+  var earned=0;
+  MEDALS.forEach(function(m){
+    var have=!!medalsEarned[m.id];if(have)earned++;
+    var d=document.createElement('div');d.className='medal-cell'+(have?' earned':'');
+    d.innerHTML='<div class="medal-emoji">'+m.emoji+'</div><div class="medal-name">'+m.name+'</div>';
+    d.title=m.cat;
+    g.appendChild(d);
+  });
+  document.getElementById('medal-count-lbl').textContent=earned+' / '+MEDALS.length;
+}
+
+/* ── Skin grid ── */
+function renderSkinGrid(){
+  var g=document.getElementById('skin-grid');g.innerHTML='';
+  SKINS.forEach(function(sk){
+    var owned=!!ownedSkins[sk.id],equipped=(equippedSkin===sk.id);
+    var st=DS[sk.id]||DS['classic'];
+    var achLocked=sk.unlockAch&&!achUnlocked[sk.unlockAch];
+    var badge,bdgCls;
+    if(equipped){badge='装備中';bdgCls='sfree';}
+    else if(owned){badge='所持済';bdgCls='sfree';}
+    else if(achLocked){badge='実績で解放';bdgCls='slocked';}
+    else{badge=sk.cost+' pt';bdgCls='scost';}
+    var div=document.createElement('div');
+    div.className='skin-card'+(owned||equipped?' owned':'')+(equipped?' equipped':'')+(achLocked&&!owned?' slocked':'');
+    div.innerHTML='<div class="skin-preview"><div class="skin-disc" style="background:'+st.b+'"></div><div class="skin-disc" style="background:'+st.w+'"></div></div>'
+      +'<div class="skin-name">'+sk.name+'</div>'
+      +'<div class="skin-badge '+bdgCls+'">'+badge+'</div>';
+    (function(skin,isOwned,isEq,isAchLocked){
+      div.addEventListener('click',function(){
+        if(isEq)return;
+        if(isOwned){equippedSkin=skin.id;saveAll();renderSkinGrid();updateStartUI();return;}
+        if(isAchLocked){alert('この実績を先に解除してください');return;}
+        if(totalPts<skin.cost){alert('ポイントが足りません（必要: '+skin.cost+' pt）');return;}
+        if(confirm(skin.name+' を '+skin.cost+' pt で購入しますか？')){
+          totalPts-=skin.cost;ownedSkins[skin.id]=true;equippedSkin=skin.id;saveAll();renderSkinGrid();updateStartUI();
+        }
+      });
+    })(sk,owned,equipped,achLocked);
+    g.appendChild(div);
+  });
+}
+
+/* ── Achievement list ── */
+function renderAchList(){
+  var el=document.getElementById('ach-list');el.innerHTML='';
+  ACHDEF.forEach(function(a){
+    var done=!!achUnlocked[a.id];
+    var div=document.createElement('div');div.className='ach-item'+(done?' done':'');
+    var prog='';
+    if(a.prog){
+      var p=a.prog(makeAchStats());
+      prog='<div class="ach-bar-wrap"><div class="ach-bar" style="width:'+Math.round(Math.min(p.cur/p.max,1)*100)+'%"></div></div>';
+    }
+    div.innerHTML='<div class="ach-icon">'+a.icon+'</div>'
+      +'<div class="ach-info"><div class="ach-name">'+a.name+'</div><div class="ach-desc">'+a.desc+'</div>'
+      +(a.reward?'<div class="ach-reward">'+a.reward+'</div>':'')+prog+'</div>'
+      +'<div class="ach-check">'+(done?'✓':'○')+'</div>';
+    el.appendChild(div);
+  });
+}
+
+/* ── Options sheet ── */
+function openSheet(){
+  var isCPU=(mode==='easy'||mode==='medium'||mode==='hard');
+  document.getElementById('sheet-color-section').style.display=isCPU?'block':'none';
+  document.getElementById('sheet-bg').classList.add('show');
+  document.getElementById('settings-sheet').classList.add('show');
+}
+function closeSheet(){
+  document.getElementById('sheet-bg').classList.remove('show');
+  document.getElementById('settings-sheet').classList.remove('show');
+  updateOptionsSummary();
+}
+function updateOptionsSummary(){
+  var el=document.getElementById('options-chips');el.innerHTML='';
+  function chip(t,r){var s=document.createElement('span');s.className='opt-chip'+(r?' red':'');s.textContent=t;el.appendChild(s);}
+  var isCPU=(mode==='easy'||mode==='medium'||mode==='hard');
+  if(isCPU)chip(playerColor==='black'?'石：黒':'石：白');
+  if(hardcoreMode)chip('💀 HC',true);
+  if(handicapMode)chip('🎲 ハンデ',true);
+}
+function selectMode(m){
+  mode=m;
+  ['pvp','easy','medium','hard'].forEach(function(id){
+    var el=document.getElementById('mc-'+id);if(el)el.classList.toggle('sel',id===m);
+  });
+  updateOptionsSummary();
+}
+function selectColor(c){
+  playerColor=c;
+  document.getElementById('cc-b').classList.toggle('sel',c==='black');
+  document.getElementById('cc-w').classList.toggle('sel',c==='white');
+}
+function toggleHardcore(){
+  hardcoreMode=!hardcoreMode;
+  document.getElementById('mc-hc').classList.toggle('sel-red',hardcoreMode);
+  document.getElementById('mc-hc').classList.remove('sel');
+}
+function toggleHandicap(){
+  handicapMode=!handicapMode;
+  document.getElementById('mc-handi').classList.toggle('sel',handicapMode);
+}
+
+/* ══════════════════════════════════════════
+   ACHIEVEMENT & MEDAL CHECK
+══════════════════════════════════════════ */
+// gameData: freshly built object per endGame call
+function checkAll(gameData){
+  var st=makeAchStats();
+  var newAch=[],newMed=[];
+
+  // Achievements
+  ACHDEF.forEach(function(a){
+    if(!achUnlocked[a.id]&&a.check(st)){
+      achUnlocked[a.id]=true;
+      if(a.pts>0)totalPts+=a.pts;
+      newAch.push(a);
+    }
+  });
+
+  // Medals
+  MEDALS.forEach(function(m){
+    if(!medalsEarned[m.id]&&m.check(gameData,st)){
+      medalsEarned[m.id]=true;
+      newMed.push(m);
+    }
+  });
+
+  saveAll();
+  // Show achievement popups (points-granting)
+  newAch.forEach(function(a,i){setTimeout(function(){showPopup(a.icon,'実績解除!',a.name);soundAch();},i*3300);});
+  // Show medal popups after achievements
+  newMed.forEach(function(m,i){setTimeout(function(){showPopup(m.emoji,'メダル獲得!',m.name);soundMedal();},newAch.length*3300+i*3300);});
+  return{ach:newAch,med:newMed};
+}
+function showPopup(icon,sub,name){
+  var p=document.getElementById('ach-popup');
+  document.getElementById('ach-popup-icon').textContent=icon;
+  document.getElementById('ach-popup-sub').textContent=sub;
+  document.getElementById('ach-popup-name').textContent=name;
+  p.className='ach-popup';void p.offsetWidth;p.classList.add('show');
+  setTimeout(function(){p.classList.remove('show');},3100);
+}
+
+/* ══════════════════════════════════════════
+   GAME LOGIC
+══════════════════════════════════════════ */
+function myColor(){return playerColor==='black'?BLACK:WHITE;}
+function isAI(){return mode!=='pvp'&&current!==myColor();}
+function opp(p){return p===BLACK?WHITE:BLACK;}
+function label(p){if(mode==='pvp')return p===BLACK?'BLACK':'WHITE';return p===myColor()?'あなた':'CPU';}
+function flips(b,r,c,p){
+  if(b[r][c]!==EMPTY)return[];
+  var res=[];
+  for(var di=0;di<DIRS.length;di++){
+    var dr=DIRS[di][0],dc=DIRS[di][1],line=[],nr=r+dr,nc=c+dc;
+    while(nr>=0&&nr<8&&nc>=0&&nc<8&&b[nr][nc]===opp(p)){line.push([nr,nc]);nr+=dr;nc+=dc;}
+    if(line.length&&nr>=0&&nr<8&&nc>=0&&nc<8&&b[nr][nc]===p)
+      for(var j=0;j<line.length;j++)res.push(line[j]);
+  }
+  return res;
+}
+function validMoves(b,p){var m=[];for(var r=0;r<8;r++)for(var c=0;c<8;c++)if(flips(b,r,c,p).length)m.push([r,c]);return m;}
+function applyMove(b,r,c,p){
+  var f=flips(b,r,c,p),nb=b.map(function(row){return row.slice();});
+  nb[r][c]=p;for(var i=0;i<f.length;i++)nb[f[i][0]][f[i][1]]=p;
+  return{board:nb,flipped:f};
+}
+function countPieces(b){var bl=0,wh=0;for(var r=0;r<8;r++)for(var c=0;c<8;c++){if(b[r][c]===BLACK)bl++;else if(b[r][c]===WHITE)wh++;}return{bl:bl,wh:wh};}
+function copyBoard(b){return b.map(function(row){return row.slice();});}
+
+/* ── AI  (difficulty tuned DOWN) ──
+   easy:   90% random, never looks ahead
+   medium: 55% random, depth-1 with large noise ±40
+   hard:   35% random, depth-2 with noise ±15  (was pure depth-3)
+*/
+var W=[[120,-20,20,5,5,20,-20,120],[-20,-40,-5,-5,-5,-5,-40,-20],[20,-5,15,3,3,15,-5,20],[5,-5,3,3,3,3,-5,5],[5,-5,3,3,3,3,-5,5],[20,-5,15,3,3,15,-5,20],[-20,-40,-5,-5,-5,-5,-40,-20],[120,-20,20,5,5,20,-20,120]];
+function evalB(b,p){var s=0;for(var r=0;r<8;r++)for(var c=0;c<8;c++){if(b[r][c]===p)s+=W[r][c];else if(b[r][c]===opp(p))s-=W[r][c];}return s;}
+function mm(b,d,a,be,max,p){
+  var mv=validMoves(b,max?p:opp(p));
+  if(d===0||(mv.length===0&&validMoves(b,max?opp(p):p).length===0))return evalB(b,p);
+  if(mv.length===0)return mm(b,d-1,a,be,!max,p);
+  if(max){var best=-Infinity;for(var i=0;i<mv.length;i++){var nb=applyMove(b,mv[i][0],mv[i][1],p).board;best=Math.max(best,mm(nb,d-1,a,be,false,p));a=Math.max(a,best);if(be<=a)break;}return best;}
+  else{var best=Infinity;for(var i=0;i<mv.length;i++){var nb=applyMove(b,mv[i][0],mv[i][1],opp(p)).board;best=Math.min(best,mm(nb,d-1,a,be,true,p));be=Math.min(be,best);if(be<=a)break;}return best;}
+}
+function getAIColor(){return playerColor==='black'?WHITE:BLACK;}
+function aiMove(){
+  var ac=getAIColor(),moves=validMoves(board,ac);
+  if(!moves.length)return null;
+  if(mode==='easy'){
+    // 90% fully random
+    if(Math.random()<.9)return moves[Math.floor(Math.random()*moves.length)];
+    // 10%: pick worst strategic move (anti-greedy)
+    var worst=Infinity,wm=moves[0];
+    for(var i=0;i<moves.length;i++){var nb=applyMove(board,moves[i][0],moves[i][1],ac).board;var s=evalB(nb,ac);if(s<worst){worst=s;wm=moves[i];}}
+    return wm;
+  }
+  if(mode==='medium'){
+    // 55% random
+    if(Math.random()<.55)return moves[Math.floor(Math.random()*moves.length)];
+    var best=-Infinity,bm=moves[0];
+    for(var i=0;i<moves.length;i++){var nb=applyMove(board,moves[i][0],moves[i][1],ac).board;var s=mm(nb,1,-Infinity,Infinity,false,ac)+(Math.random()-.5)*80;if(s>best){best=s;bm=moves[i];}}
+    return bm;
+  }
+  // hard: 35% random, depth-2 + noise ±15
+  if(Math.random()<.35)return moves[Math.floor(Math.random()*moves.length)];
+  var best=-Infinity,bm=moves[0];
+  for(var i=0;i<moves.length;i++){var nb=applyMove(board,moves[i][0],moves[i][1],ac).board;var s=mm(nb,2,-Infinity,Infinity,false,ac)+(Math.random()-.5)*30;if(s>best){best=s;bm=moves[i];}}
+  return bm;
+}
+
+function calcPoints(myCount,cpuCount){
+  var diff=myCount-cpuCount;if(diff<=0)return 0;
+  var base=mode==='easy'?5:mode==='medium'?10:18;
+  var margin=diff>=30?12:diff>=20?7:diff>=10?3:diff>=5?1:0;
+  return base+margin;
+}
+function makeHandicapBoard(){
+  var b=[];for(var r=0;r<8;r++){b.push([]);for(var c=0;c<8;c++)b[r].push(EMPTY);}
+  b[3][3]=WHITE;b[3][4]=BLACK;b[4][3]=BLACK;b[4][4]=WHITE;
+  var ai=opp(myColor());
+  [[0,0],[0,7],[7,0],[7,7]].forEach(function(p){b[p[0]][p[1]]=ai;});
+  return b;
+}
+
+/* ══════════════════════════════════════════
+   DOM / RENDER
+══════════════════════════════════════════ */
+function buildDOM(){
+  var bw=document.getElementById('board-wrap');
+  SKINS.forEach(function(sk){bw.classList.remove('skin-'+sk.id);});
+  if(equippedSkin!=='classic')bw.classList.add('skin-'+equippedSkin);
+  var el=document.getElementById('board');el.innerHTML='';
+  for(var r=0;r<8;r++)for(var c=0;c<8;c++){
+    var cell=document.createElement('div');cell.className='cell';cell.id='c'+r+c;
+    (function(rr,cc){cell.addEventListener('click',function(){onCellClick(rr,cc);});})(r,c);
+    el.appendChild(cell);
+  }
+  var sb=document.getElementById('sp-disc-b'),sw=document.getElementById('sp-disc-w');
+  if(sb)sb.style.background=discBg('black');
+  if(sw)sw.style.background=discBg('white');
+}
+function renderBoard(flipped,placed){
+  flipped=flipped||[];placed=placed||null;
+  var hints=gameOver?[]:validMoves(board,current);
+  var hs={};for(var i=0;i<hints.length;i++)hs[hints[i][0]+''+hints[i][1]]=true;
+  for(var r=0;r<8;r++)for(var c=0;c<8;c++){
+    var cell=document.getElementById('c'+r+c);
+    var cls='cell';
+    if(hs[r+''+c])cls+=' hint';
+    if(lastMoveRC&&lastMoveRC[0]===r&&lastMoveRC[1]===c)cls+=' last-move';
+    cell.className=cls;
+    var disc=cell.querySelector('.disc'),val=board[r][c];
+    if(val===EMPTY){if(disc)disc.remove();continue;}
+    var dc=val===BLACK?'black':'white',bg=discBg(dc);
+    if(!disc){
+      disc=document.createElement('div');disc.className='disc '+dc;disc.style.background=bg;
+      if(placed&&placed[0]===r&&placed[1]===c)disc.classList.add('anim-place');
+      cell.appendChild(disc);
+    } else {
+      var wasFlipped=false;
+      for(var fi=0;fi<flipped.length;fi++)if(flipped[fi][0]===r&&flipped[fi][1]===c){wasFlipped=true;break;}
+      if(wasFlipped){
+        var a=val===WHITE?'anim-flip-white':'anim-flip-black';
+        disc.className='disc '+dc+' '+a;disc.style.background=bg;
+        (function(d,an){d.addEventListener('animationend',function(){d.classList.remove(an);},{once:true});})(disc,a);
+      } else {disc.className='disc '+dc;disc.style.background=bg;}
+    }
+  }
+  var cp=countPieces(board);
+  document.getElementById('cnt-b').textContent=cp.bl;
+  document.getElementById('cnt-w').textContent=cp.wh;
+  document.getElementById('pill-b').classList.toggle('my-turn',current===BLACK&&!gameOver);
+  document.getElementById('pill-w').classList.toggle('my-turn',current===WHITE&&!gameOver);
+}
+function renderTurn(){
+  var cc=current===BLACK?'black':'white';
+  document.getElementById('tb-disc').style.background=discBg(cc);
+  document.getElementById('tb-name').textContent=label(current);
+  document.getElementById('turn-banner').className='turn-banner tb-'+cc;
+  var sub=mode==='pvp'?(current===BLACK?'先手':'後手'):(isAI()?'CPU 考え中…':'あなたの番');
+  document.getElementById('tb-sub').textContent=sub;
+}
+function renderInfoRow(){
+  var tags=document.getElementById('mode-tags');tags.innerHTML='';
+  function addTag(t,r){var s=document.createElement('span');s.className='mode-tag'+(r?' red':'');s.textContent=t;tags.appendChild(s);}
+  if(mode==='pvp'){addTag('2人対戦');}
+  else{
+    addTag(mode==='easy'?'CPU 初級':mode==='medium'?'CPU 中級':'CPU 上級');
+    addTag(playerColor==='black'?'あなた：黒':'あなた：白');
+  }
+  if(hardcoreMode)addTag('💀 HC',true);
+  if(handicapMode)addTag('🎲 ハンデ',true);
+  document.getElementById('streak-txt').textContent=winStreak>=2&&!gameOver?'🔥 '+winStreak+'連勝中！':'';
+}
+function setNames(){
+  if(mode==='pvp'){
+    document.getElementById('pname-b').textContent='BLACK';
+    document.getElementById('pname-w').textContent='WHITE';
+  } else {
+    var mc=myColor();
+    document.getElementById('pname-b').textContent=mc===BLACK?'あなた':'CPU';
+    document.getElementById('pname-w').textContent=mc===WHITE?'あなた':'CPU';
+  }
+}
+
+/* ══════════════════════════════════════════
+   GAME FLOW
+══════════════════════════════════════════ */
+function startGame(){
+  soundStart();
+  document.getElementById('screen-start').classList.add('hidden');
+  document.getElementById('screen-game').classList.remove('hidden');
+  initGame();
+}
+function goToStart(){
+  document.getElementById('screen-game').classList.add('hidden');
+  document.getElementById('screen-start').classList.remove('hidden');
+  document.getElementById('result-overlay').classList.remove('show');
+  updateStartUI();
+}
+function restartGame(){
+  document.getElementById('result-overlay').classList.remove('show');
+  soundStart();initGame();
+}
+function initGame(){
+  if(handicapMode&&mode!=='pvp'){board=makeHandicapBoard();}
+  else{
+    board=[];for(var r=0;r<8;r++){board.push([]);for(var c=0;c<8;c++)board[r].push(EMPTY);}
+    board[3][3]=WHITE;board[3][4]=BLACK;board[4][3]=BLACK;board[4][4]=WHITE;
+  }
+  current=BLACK;gameOver=false;animating=false;
+  undoStack=[];undoUsed=false;lastMoveRC=null;maxFlipInTurn=0;
+  var ub=document.getElementById('btn-undo');
+  ub.classList.remove('off');document.getElementById('undo-count').textContent='1';
+  if(mode==='pvp')ub.classList.add('off');
+  buildDOM();setNames();renderBoard();renderTurn();renderInfoRow();
+  if(isAI())setTimeout(runAI,700);
+}
+function pushUndo(){undoStack.push({board:copyBoard(board),current:current,lastMoveRC:lastMoveRC});}
+function doUndo(){
+  if(undoUsed||undoStack.length===0||isAI()||gameOver)return;
+  soundUndo();
+  while(undoStack.length>0){
+    var snap=undoStack.pop();board=snap.board;current=snap.current;lastMoveRC=snap.lastMoveRC;
+    if(!isAI())break;
+  }
+  undoUsed=true;document.getElementById('btn-undo').classList.add('off');document.getElementById('undo-count').textContent='0';
+  renderBoard();renderTurn();renderInfoRow();
+}
+function onCellClick(r,c){
+  if(gameOver||animating||isAI())return;
+  var f=flips(board,r,c,current);if(!f.length)return;
+  pushUndo();doMove(r,c,current,f);
+}
+function doMove(r,c,p,flipped){
+  animating=true;
+  var res=applyMove(board,r,c,p);board=res.board;lastMoveRC=[r,c];
+  if(flipped.length>maxFlipInTurn)maxFlipInTurn=flipped.length;
+  soundPlace();
+  if(flipped.length)setTimeout(function(){soundFlip(flipped.length);},60);
+  renderBoard(flipped,[r,c]);
+  setTimeout(function(){animating=false;nextTurn();},flipped.length?330:60);
+}
+function nextTurn(){
+  var nxt=opp(current);
+  var nm=validMoves(board,nxt),cm=validMoves(board,current);
+  if(!nm.length&&!cm.length){endGame();return;}
+  if(!nm.length){
+    soundPass();
+    var pn=document.getElementById('pass-notice');
+    document.getElementById('pass-msg').textContent=label(nxt)+'は置ける場所がありません';
+    pn.classList.add('show');
+    setTimeout(function(){pn.classList.remove('show');renderBoard();renderTurn();if(isAI())setTimeout(runAI,500);},1400);
+    return;
+  }
+  current=nxt;renderBoard();renderTurn();
+  if(isAI())setTimeout(runAI,700);
+}
+function runAI(){if(gameOver||animating)return;var mv=aiMove();if(!mv){nextTurn();return;}var f=flips(board,mv[0],mv[1],getAIColor());doMove(mv[0],mv[1],getAIColor(),f);}
+
+function endGame(){
+  gameOver=true;renderBoard();renderInfoRow();
+  var cp=countPieces(board),bl=cp.bl,wh=cp.wh,total=bl+wh||1;
+  document.getElementById('rcs-b').textContent=bl;
+  document.getElementById('rcs-w').textContent=wh;
+  document.getElementById('rc-bar-b').style.width=((bl/total)*100)+'%';
+
+  // PvP
+  if(mode==='pvp'){
+    pvpGames++;saveAll();
+    document.getElementById('rc-winner').textContent=bl>wh?'黒の勝ち！':wh>bl?'白の勝ち！':'引き分け';
+    document.getElementById('rc-pts-box').style.display='none';
+    document.getElementById('rc-rank-box').style.display='none';
+    document.getElementById('rc-ach-new').classList.remove('show');
+    document.getElementById('rc-hardcore-loss').classList.remove('show');
+    document.getElementById('rc-medals').innerHTML='';
+    setTimeout(function(){document.getElementById('result-overlay').classList.add('show');},400);
+    return;
+  }
+
+  // CPU
+  var mc=myColor(),my=mc===BLACK?bl:wh,cpu=mc===BLACK?wh:bl;
+  var playerWon=my>cpu,draw=my===cpu;
+  var margin=my-cpu;
+
+  // ─ Update counters ─
+  cpuGames++;
+  if(playerWon){
+    cpuWins++;
+    if(mode==='easy')easyWins++;
+    else if(mode==='medium')medWins++;
+    else hardWins++;
+    if(hardcoreMode)hardcoreWins++;
+    if(handicapMode)handicapWins++;
+    if(margin>=20)dominantWins++;
+    if(margin<=3&&margin>0)clutchWins++;
+  }
+  // ─ Streaks (reset on non-win) ─
+  if(playerWon){
+    winStreak++;
+  } else {
+    winStreak=0;  // RESET on loss or draw
+  }
+  if(winStreak>maxStreak)maxStreak=winStreak;
+
+  // ─ Per-game flags ─
+  if(maxFlipInTurn>=7)bigFlipCount++;
+  if((playerColor==='black'&&bl===64)||(playerColor==='white'&&wh===64))perfectCount++;
+
+  // ─ Earned points ─
+  var earned=calcPoints(my,cpu);
+  var streakBonus=0;
+  if(playerWon&&winStreak>=2){streakBonus=Math.min(winStreak-1,5)*2;earned+=streakBonus;}
+
+  // ─ Hardcore penalty ─
+  var hlBox=document.getElementById('rc-hardcore-loss');hlBox.classList.remove('show');
+  if(hardcoreMode&&!playerWon&&!draw){
+    var penalty=Math.min(totalPts,Math.max(5,earned>0?earned:5));
+    totalPts=Math.max(0,totalPts-penalty);
+    hlBox.classList.add('show');
+    hlBox.textContent='💀 ハードコア敗北 — '+penalty+' pt 没収';
+  }
+  var oldRank=getRank(totalPts).title;
+  totalPts+=earned;
+  saveAll();
+
+  // ─ Build gameData for medal check ─
+  var gameData={
+    cpuWin:playerWon, diff:mode, hardcore:hardcoreMode, handicap:handicapMode,
+    margin:margin, perfect:(maxFlipInTurn,perfectCount>0&&((playerColor==='black'&&bl===64)||(playerColor==='white'&&wh===64))),
+    bigFlip:(maxFlipInTurn>=7),
+  };
+  // Note: perfect flag in gameData uses current game only
+  var myPc=mc===BLACK?bl:wh;
+  gameData.perfect=(mode!=='pvp')&&((playerColor==='black'&&bl===64)||(playerColor==='white'&&wh===64));
+
+  var result=checkAll(gameData);
+  var newAch=result.ach,newMed=result.med;
+  var newRank=getRank(totalPts).title;
+
+  // ─ Result UI ─
+  document.getElementById('rc-winner').textContent=playerWon?'あなたの勝ち！':cpu>my?'CPUの勝ち':'引き分け';
+  document.getElementById('rc-pts-earned').textContent=(earned>0?'+':'')+earned+' pt';
+  document.getElementById('rc-streak-bonus').textContent=streakBonus>0?'🔥 '+winStreak+'連勝ボーナス +'+streakBonus+' pt':'';
+  document.getElementById('rc-pts-total').textContent=totalPts+' pt';
+  document.getElementById('rc-pts-box').style.display='block';
+  document.getElementById('rc-rank-old').textContent=oldRank;
+  document.getElementById('rc-rank-new').textContent=newRank;
+  document.getElementById('rc-rank-new').className='rc-rank-new '+(newRank!==oldRank?'up':'same');
+  document.getElementById('rc-rank-box').style.display='flex';
+
+  // New medals in result
+  var medDiv=document.getElementById('rc-medals');medDiv.innerHTML='';
+  newMed.forEach(function(m){
+    var ch=document.createElement('div');ch.className='rc-medal-chip';
+    ch.innerHTML=m.emoji+' '+m.name;medDiv.appendChild(ch);
+  });
+
+  var achEl=document.getElementById('rc-ach-new');
+  if(newAch.length>0){achEl.textContent='🏆 実績解除: '+newAch.map(function(a){return a.name;}).join(' / ');achEl.classList.add('show');}
+  else{achEl.classList.remove('show');}
+
+  setTimeout(function(){if(playerWon)soundWin();else if(!draw)soundLose();},420);
+  setTimeout(function(){document.getElementById('result-overlay').classList.add('show');},400);
+}
+
+/* ── Boot ── */
+updateStartUI();
+buildDOM();
+updateOptionsSummary();
+</script>
+</body>
+</html>
